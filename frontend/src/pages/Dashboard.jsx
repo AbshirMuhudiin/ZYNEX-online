@@ -89,7 +89,7 @@ export default function Dashboard() {
               </div>
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
                 <div className="text-gray-500 text-sm font-medium uppercase tracking-wider mb-2">Total Expenses</div>
-                <div className="text-3xl font-bold text-orange-500">SOS {Number(expenseSummary?.month || 0).toFixed(2)}</div>
+                <div className="text-3xl font-bold text-orange-500">${Number(expenseSummary?.month || 0).toFixed(2)}</div>
                 <div className="text-xs text-gray-400 mt-1">This month</div>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">

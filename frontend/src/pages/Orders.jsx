@@ -39,8 +39,10 @@ function Receipt({ data }) {
     <div className="font-mono text-gray-800 bg-white p-8 w-full">
       {/* Header */}
       <div className="text-center mb-5 pb-5 border-b-2 border-dashed border-gray-300">
-        <div className="text-2xl font-black tracking-widest text-gray-900 uppercase">ZYNEX online store</div>
-        <div className="text-xs text-gray-400 mt-1">Official Sales Receipt</div>
+        <div className="flex justify-center mb-2">
+          <img src="/logo.png" alt="ZYNEX Online Store" className="w-56 h-auto object-contain grayscale" onError={(e) => { e.target.style.display = 'none'; }} />
+        </div>
+        <div className="text-xs text-gray-400 mt-2 font-medium">Official Sales Receipt</div>
       </div>
 
       {/* Meta */}

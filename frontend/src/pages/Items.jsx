@@ -10,6 +10,7 @@ export default function Items() {
   
   const initialForm = { name: '', sku: '', description: '', cost_price: 0, sale_price: 0, quantity: 0, min_quantity: 0 }
   const [formData, setFormData] = useState(initialForm)
+  const [selectedImage, setSelectedImage] = useState(null)
   
   const user = getUser()
   const isAdmin = user?.role === 'admin'
@@ -28,6 +29,7 @@ export default function Items() {
   const openAddModal = () => {
     setEditingId(null)
     setFormData(initialForm)
+    setSelectedImage(null)
     setShowModal(true)
   }
 
@@ -43,6 +45,7 @@ export default function Items() {
       quantity: Number(item.quantity),
       min_quantity: Number(item.min_quantity)
     })
+    setSelectedImage(null)
     setShowModal(true)
   }
 
@@ -60,23 +63,41 @@ export default function Items() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      const fd = new FormData()
+      fd.append('name', formData.name)
+      fd.append('sku', formData.sku)
+      fd.append('description', formData.description)
+      fd.append('cost_price', formData.cost_price)
+      fd.append('sale_price', formData.sale_price)
+      fd.append('quantity', formData.quantity)
+      fd.append('min_quantity', formData.min_quantity)
+      if (selectedImage) fd.append('images', selectedImage)
+
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } }
+
       if (editingId) {
-        await api.put(`/items/${editingId}`, formData)
+        await api.put(`/items/${editingId}`, fd, config)
       } else {
-        await api.post('/items', formData)
+        await api.post('/items', fd, config)
       }
       setShowModal(false)
       setFormData(initialForm)
+      setSelectedImage(null)
       load()
     } catch (e) {
       alert(e?.response?.data?.message || 'Failed to save item')
     }
   }
 
+  const getImageUrl = (path) => {
+    const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+    return `${baseUrl}${path}`;
+  };
+
   return (
     <div className="space-y-6 pb-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">Inventory Items</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Stock</h1>
         {isAdmin && (
           <button 
             onClick={openAddModal}
@@ -95,7 +116,7 @@ export default function Items() {
           <div key={it.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col group transform hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 relative overflow-hidden">
             
             {isAdmin && (
-              <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur rounded-lg p-1 shadow-sm border border-gray-100">
+              <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur rounded-lg p-1 shadow-sm border border-gray-100 z-20">
                 <button onClick={(e) => openEditModal(it, e)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition" title="Edit Item">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 </button>
@@ -105,8 +126,15 @@ export default function Items() {
               </div>
             )}
 
-            <div className="flex justify-between items-start mb-2 pr-12">
-              <div className="font-bold text-lg text-gray-800 truncate" title={it.name}>{it.name}</div>
+            <div className="flex gap-3 items-center mb-2 pr-12">
+              {it.images && it.images.length > 0 && (
+                <div className="w-12 h-12 rounded-xl overflow-hidden border border-gray-200 shadow-sm flex-shrink-0 cursor-pointer transform transition-all duration-300 hover:scale-[2] hover:shadow-xl hover:z-50 relative z-10 bg-white origin-top-left">
+                  <img src={getImageUrl(it.images[0])} className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="flex flex-col justify-start overflow-hidden flex-1">
+                <div className="font-bold text-lg text-gray-800 truncate" title={it.name}>{it.name}</div>
+              </div>
             </div>
             
             <div className="mb-4">
@@ -181,6 +209,10 @@ export default function Items() {
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Description</label>
                 <textarea className="w-full border border-gray-200 p-2.5 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none transition" rows="3" value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})}></textarea>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Product Image (Optional)</label>
+                <input type="file" accept="image/*" onChange={(e) => setSelectedImage(e.target.files[0])} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition cursor-pointer border border-gray-200 p-2 rounded-xl bg-gray-50" />
               </div>
               <div className="pt-4 flex gap-3 border-t border-gray-100">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition">Cancel</button>

@@ -66,15 +66,36 @@ router.post('/', authenticate, authorize(['admin']), upload.array('images', 5), 
   }
 });
 
-router.put('/:id', authenticate, authorize(['admin']), async (req, res) => {
+router.put('/:id', authenticate, authorize(['admin']), upload.array('images', 5), async (req, res) => {
   const { id } = req.params;
   const { name, sku, description, cost_price, sale_price, quantity, min_quantity } = req.body;
-  await pool.query(
-    'UPDATE items SET name=?, sku=?, description=?, cost_price=?, sale_price=?, quantity=?, min_quantity=? WHERE id=?',
-    [name, sku, description || '', Number(cost_price), Number(sale_price), Number(quantity), Number(min_quantity), id]
-  );
-  await createLowStockNotificationIfNeeded(id, req.app.get('io'));
-  res.json({ id: Number(id) });
+  const files = req.files || [];
+  
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query(
+      'UPDATE items SET name=?, sku=?, description=?, cost_price=?, sale_price=?, quantity=?, min_quantity=? WHERE id=?',
+      [name, sku, description || '', Number(cost_price), Number(sale_price), Number(quantity), Number(min_quantity), id]
+    );
+
+    if (files.length > 0) {
+      await conn.query('DELETE FROM item_images WHERE item_id=?', [id]);
+      for (const f of files) {
+        const relPath = `/uploads/${path.basename(f.path)}`;
+        await conn.query('INSERT INTO item_images (item_id, path) VALUES (?,?)', [id, relPath]);
+      }
+    }
+
+    await conn.commit();
+    await createLowStockNotificationIfNeeded(id, req.app.get('io'));
+    res.json({ id: Number(id) });
+  } catch (e) {
+    await conn.rollback();
+    res.status(500).json({ message: 'Failed to update item' });
+  } finally {
+    conn.release();
+  }
 });
 
 router.delete('/:id', authenticate, authorize(['admin']), async (req, res) => {
